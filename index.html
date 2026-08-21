@@ -395,12 +395,12 @@ h1{
       <div>
         <div class="card-title">🎯 <span class="hand-underline">Current Goal</span></div>
         <div class="goal-main">
-          <strong id="goalCurrent">35%</strong>
+          <strong id="goalCurrent">—</strong>
           <span class="arrow">→</span>
-          <strong id="goalTarget">28%</strong>
+          <strong id="goalTarget">—</strong>
         </div>
       </div>
-      <div class="deadline">🗓 <span id="deadlineText">2026.11.30</span></div>
+      <div class="deadline">🗓 <span id="deadlineText">未设置</span></div>
     </div>
   </section>
 
@@ -439,14 +439,19 @@ h1{
       <button id="walkBtn" class="secondary">记录 Walk</button>
       <button id="restBtn" class="secondary">记录 Rest</button>
     </div>
+    <button id="recoveryBtn" class="secondary" style="width:100%;margin-top:10px">恢复训练</button>
   </section>
 
   <section class="card">
     <div class="card-title">📅 <span class="hand-underline">This Month</span></div>
     <div class="month-row">
-      <div id="monthCount" class="month-count">0 / 8 / 10</div>
-      <div id="monthStatus" class="status">💪 本月还需努力</div>
+      <div>
+        <div id="monthCount" class="month-count">0 次</div>
+        <div id="monthExplain" class="note" style="margin-top:4px">本月已完成训练次数。可设置“最低目标”和“理想目标”。</div>
+      </div>
+      <button id="monthGoalBtn" class="secondary">设置目标</button>
       <div class="progress"><span id="monthBar" style="width:0%"></span></div>
+      <div id="monthStatus" class="status">尚未设置月目标</div>
     </div>
   </section>
 
@@ -520,6 +525,28 @@ h1{
   </div>
 </div>
 
+
+<div id="monthGoalModal" class="modal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>本月训练目标</h2>
+      <button class="secondary" data-close="monthGoalModal">关闭</button>
+    </div>
+    <div class="config-block">
+      <div class="field">
+        <label>最低目标（次）</label>
+        <input id="setMonthMinimum" type="number" min="0" step="1" placeholder="例如 8">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>理想目标（次）</label>
+        <input id="setMonthTarget" type="number" min="0" step="1" placeholder="例如 10">
+      </div>
+      <div class="note" style="margin-top:10px">最低目标 = 这个月至少想完成多少次训练；理想目标 = 状态不错时希望达到的次数。</div>
+    </div>
+    <button id="saveMonthGoalBtn" class="primary">保存目标</button>
+  </div>
+</div>
+
 <div id="settingsModal" class="modal">
   <div class="sheet">
     <div class="sheet-head">
@@ -537,7 +564,7 @@ h1{
       </div>
       <div class="field" style="margin-top:10px">
         <label>Deadline</label>
-        <input id="setDeadline" type="text" placeholder="2026.11.30">
+        <input id="setDeadline" type="text" placeholder="例如 2026.11.30">
       </div>
     </div>
     <button id="saveSettingsBtn" class="primary">保存设置</button>
@@ -554,7 +581,7 @@ const baseState={
     C:{note:'Workout C',exercises:[]},
     '恢复':{note:'恢复训练',exercises:[]}
   },
-  profile:{currentFat:35,targetFat:28,deadline:'2026.11.30',weight:'',bodyFat:''},
+  profile:{currentFat:'',targetFat:'',deadline:'',weight:'',bodyFat:'',monthMinimum:'',monthTarget:''},
   history:[],
   drafts:{},
   lastByExercise:{},
@@ -563,6 +590,8 @@ const baseState={
 };
 let state=load();
 let editingPlan='A';
+let activeWorkout=null;
+let manualRecovery=false;
 
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function merge(base,extra){
@@ -607,9 +636,9 @@ function daysSince(iso){
 }
 
 function render(){
-  goalCurrent.textContent=`${state.profile.currentFat}%`;
-  goalTarget.textContent=`${state.profile.targetFat}%`;
-  deadlineText.textContent=state.profile.deadline||'—';
+  goalCurrent.textContent=state.profile.currentFat!==''?`${state.profile.currentFat}%`:'—';
+  goalTarget.textContent=state.profile.targetFat!==''?`${state.profile.targetFat}%`:'—';
+  deadlineText.textContent=state.profile.deadline||'未设置';
   weight.value=state.profile.weight??'';
   bodyFat.value=state.profile.bodyFat??'';
 
@@ -626,9 +655,21 @@ function render(){
   emptyPreview.classList.toggle('hidden',plan.exercises.length>0);
 
   const count=monthTrainingCount();
-  monthCount.textContent=`${count} / 8 / 10`;
-  monthBar.style.width=`${Math.min(100,count/10*100)}%`;
-  monthStatus.textContent=count>=10?'🎊 本月圆满完成~':count>=8?'🈴 本月合格~':'💪 本月还需努力';
+  const minGoal=parseInt(state.profile.monthMinimum||'',10);
+  const targetGoal=parseInt(state.profile.monthTarget||'',10);
+  monthCount.textContent=`${count} 次`;
+  if(Number.isFinite(targetGoal) && targetGoal>0){
+    monthBar.style.width=`${Math.min(100,count/targetGoal*100)}%`;
+  }else{
+    monthBar.style.width='0%';
+  }
+  if(Number.isFinite(minGoal) && minGoal>0 && Number.isFinite(targetGoal) && targetGoal>0){
+    monthExplain.textContent=`已完成 ${count} 次 · 最低目标 ${minGoal} 次 · 理想目标 ${targetGoal} 次`;
+    monthStatus.textContent=count>=targetGoal?'🎊 已达到理想目标':count>=minGoal?'🈴 已达到最低目标':`还差 ${Math.max(0,minGoal-count)} 次达到最低目标`;
+  }else{
+    monthExplain.textContent=`本月已完成 ${count} 次训练。可设置“最低目标”和“理想目标”。`;
+    monthStatus.textContent='尚未设置月目标';
+  }
 
   pbLeg();
   renderLibrary();
@@ -664,9 +705,11 @@ function renderHistory(){
   items.forEach(x=>{
     const d=document.createElement('div');
     d.className='history-item';
-    const title=x.type==='workout'?`Workout ${x.workout}`:x.type==='walk'?'Walk':'Rest';
-    const extra=x.type==='walk'&&x.minutes?` · ${x.minutes} min`:'';
-    d.innerHTML=`<div><span class="badge">${x.date.slice(5).replace('-','/')}</span>${esc(title)}${esc(extra)}</div><div class="note">${x.type==='workout'?(x.entries?.length||0)+' 项':''}</div>`;
+    let title='';
+    if(x.type==='workout') title=`${x.workout} 训练`;
+    else if(x.type==='walk') title=x.minutes?`Walk · ${x.minutes} 分钟`:'Walk';
+    else title='Rest';
+    d.innerHTML=`<div><span class="badge">${x.date.slice(5).replace('-','/')}</span>${esc(title)}</div>`;
     history.appendChild(d);
   });
 }
@@ -688,8 +731,11 @@ function renderBackup(){
 function openModal(id){document.getElementById(id).classList.add('show')}
 function closeModal(id){document.getElementById(id).classList.remove('show')}
 
-function openWorkout(){
-  const w=state.currentWorkout, plan=state.plans[w];
+function openWorkout(workoutOverride=null){
+  const w=workoutOverride||state.currentWorkout;
+  activeWorkout=w;
+  manualRecovery=(workoutOverride==='恢复' && state.currentWorkout!=='恢复');
+  const plan=state.plans[w];
   modalWorkoutTitle.textContent=`Workout ${w}`;
   exerciseList.innerHTML='';
   const draft=state.drafts[w]||{};
@@ -731,12 +777,13 @@ function collectWorkout(){
   return data;
 }
 function saveDraft(){
-  state.drafts[state.currentWorkout]=collectWorkout();
+  const w=activeWorkout||state.currentWorkout;
+  state.drafts[w]=collectWorkout();
   saveAndRender();
   alert('草稿已保存');
 }
 function completeWorkout(){
-  const w=state.currentWorkout;
+  const w=activeWorkout||state.currentWorkout;
   const data=collectWorkout();
   const entries=Object.entries(data).map(([name,v])=>({name,...v}));
   state.history.push({
@@ -754,11 +801,24 @@ function completeWorkout(){
     }
   });
   delete state.drafts[w];
-  state.currentWorkout=nextWorkout(w);
+  if(!manualRecovery){
+    state.currentWorkout=nextWorkout(w);
+  }
   saveAndRender();
   closeModal('workoutModal');
-  alert(`已完成 ${w}，下一次：${state.currentWorkout}`);
+  if(manualRecovery){
+    alert(`已完成恢复训练。原训练流程保持不变，下一次仍是：${state.currentWorkout}`);
+  }else{
+    alert(`已完成 ${w}，下一次：${state.currentWorkout}`);
+  }
+  activeWorkout=null;
+  manualRecovery=false;
 }
+
+function openRecoveryWorkout(){
+  openWorkout('恢复');
+}
+
 function openConfig(code){
   editingPlan=code;
   configTitle.textContent=`设置 Workout ${code}`;
@@ -818,6 +878,19 @@ function importJSON(file){
   };
   reader.readAsText(file);
 }
+
+function openMonthGoal(){
+  setMonthMinimum.value=state.profile.monthMinimum??'';
+  setMonthTarget.value=state.profile.monthTarget??'';
+  openModal('monthGoalModal');
+}
+function saveMonthGoal(){
+  state.profile.monthMinimum=setMonthMinimum.value.trim();
+  state.profile.monthTarget=setMonthTarget.value.trim();
+  saveAndRender();
+  closeModal('monthGoalModal');
+}
+
 function openSettings(){
   setCurrentFat.value=state.profile.currentFat;
   setTargetFat.value=state.profile.targetFat;
@@ -825,9 +898,9 @@ function openSettings(){
   openModal('settingsModal');
 }
 function saveSettings(){
-  state.profile.currentFat=parseFloat(setCurrentFat.value)||state.profile.currentFat;
-  state.profile.targetFat=parseFloat(setTargetFat.value)||state.profile.targetFat;
-  state.profile.deadline=setDeadline.value.trim()||state.profile.deadline;
+  state.profile.currentFat=setCurrentFat.value.trim();
+  state.profile.targetFat=setTargetFat.value.trim();
+  state.profile.deadline=setDeadline.value.trim();
   saveAndRender();
   closeModal('settingsModal');
 }
@@ -835,10 +908,13 @@ function saveSettings(){
 startBtn.addEventListener('click',openWorkout);
 walkBtn.addEventListener('click',()=>addSimple('walk'));
 restBtn.addEventListener('click',()=>addSimple('rest'));
+recoveryBtn.addEventListener('click',openRecoveryWorkout);
 saveDraftBtn.addEventListener('click',saveDraft);
 completeBtn.addEventListener('click',completeWorkout);
 saveConfigBtn.addEventListener('click',saveConfig);
 settingsBtn.addEventListener('click',openSettings);
+monthGoalBtn.addEventListener('click',openMonthGoal);
+saveMonthGoalBtn.addEventListener('click',saveMonthGoal);
 saveSettingsBtn.addEventListener('click',saveSettings);
 exportBtn.addEventListener('click',exportJSON);
 importBtn.addEventListener('click',()=>importFile.click());

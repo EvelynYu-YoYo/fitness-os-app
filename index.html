@@ -344,13 +344,24 @@ h1{
 .last{font-size:12px;color:var(--muted);margin-bottom:10px}
 .fields{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
-.field input,.field textarea,.config textarea{
+.field input,.field textarea,.config-block textarea{
   width:100%;
   border:1px solid var(--line);
   background:#fff;
   border-radius:10px;
-  padding:9px;
+  padding:11px 12px;
   color:var(--text);
+  font-size:16px;
+}
+#configExercises{
+  width:100%;
+  min-height:240px;
+  resize:vertical;
+}
+#configNote{
+  width:100%;
+  min-height:92px;
+  resize:vertical;
 }
 .field textarea{resize:vertical}
 .config-block{
@@ -361,7 +372,7 @@ h1{
   margin-top:10px;
 }
 .config-block h3{margin:0 0 8px;font-size:14px}
-.config textarea{resize:vertical}
+.config-block textarea{resize:vertical}
 .toolbar{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -371,6 +382,27 @@ h1{
 .hidden{display:none!important}
 .note{
   font-size:12px;color:var(--muted);line-height:1.5
+}
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:28px;
+  transform:translateX(-50%) translateY(12px);
+  background:#2f312d;
+  color:#fff;
+  padding:10px 14px;
+  border-radius:999px;
+  font-size:14px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
+  z-index:100;
+  max-width:calc(100% - 32px);
+  white-space:nowrap;
+}
+.toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
 }
 @media (max-width:360px){
   .hero-body{grid-template-columns:68px 1fr}
@@ -571,7 +603,54 @@ h1{
   </div>
 </div>
 
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
 <script>
+
+const $ = id => document.getElementById(id);
+const goalCurrent = $('goalCurrent');
+const goalTarget = $('goalTarget');
+const deadlineText = $('deadlineText');
+const weight = $('weight');
+const bodyFat = $('bodyFat');
+const workoutCode = $('workoutCode');
+const workoutName = $('workoutName');
+const preview = $('preview');
+const emptyPreview = $('emptyPreview');
+const monthCount = $('monthCount');
+const monthExplain = $('monthExplain');
+const monthBar = $('monthBar');
+const monthStatus = $('monthStatus');
+const library = $('library');
+const history = $('history');
+const lastBackupText = $('lastBackupText');
+const backupWarning = $('backupWarning');
+const modalWorkoutTitle = $('modalWorkoutTitle');
+const exerciseList = $('exerciseList');
+const saveDraftBtn = $('saveDraftBtn');
+const completeBtn = $('completeBtn');
+const configTitle = $('configTitle');
+const configExercises = $('configExercises');
+const configNote = $('configNote');
+const setMonthMinimum = $('setMonthMinimum');
+const setMonthTarget = $('setMonthTarget');
+const setCurrentFat = $('setCurrentFat');
+const setTargetFat = $('setTargetFat');
+const setDeadline = $('setDeadline');
+const startBtn = $('startBtn');
+const walkBtn = $('walkBtn');
+const restBtn = $('restBtn');
+const recoveryBtn = $('recoveryBtn');
+const saveConfigBtn = $('saveConfigBtn');
+const settingsBtn = $('settingsBtn');
+const monthGoalBtn = $('monthGoalBtn');
+const saveMonthGoalBtn = $('saveMonthGoalBtn');
+const saveSettingsBtn = $('saveSettingsBtn');
+const exportBtn = $('exportBtn');
+const importBtn = $('importBtn');
+const importFile = $('importFile');
+const toast = $('toast');
+
 const KEY='fitnessOS_mobile_v2';
 const baseState={
   currentWorkout:'A',
@@ -633,6 +712,31 @@ function monthTrainingCount(){
 function daysSince(iso){
   if(!iso)return Infinity;
   return Math.floor((Date.now()-new Date(iso).getTime())/86400000);
+}
+
+let toastTimer=null;
+function showToast(message){
+  toast.textContent=message;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove('show'),1800);
+}
+
+function dedupeRestHistory(){
+  const seen=new Set();
+  const cleaned=[];
+  for(const item of state.history){
+    if(item.type==='rest'){
+      const key=`rest:${item.date}`;
+      if(seen.has(key)) continue;
+      seen.add(key);
+    }
+    cleaned.push(item);
+  }
+  if(cleaned.length!==state.history.length){
+    state.history=cleaned;
+    persist();
+  }
 }
 
 function render(){
@@ -736,6 +840,10 @@ function openWorkout(workoutOverride=null){
   activeWorkout=w;
   manualRecovery=(workoutOverride==='恢复' && state.currentWorkout!=='恢复');
   const plan=state.plans[w];
+  if(!plan){
+    console.error('Unknown workout:', w);
+    return;
+  }
   modalWorkoutTitle.textContent=`Workout ${w}`;
   exerciseList.innerHTML='';
   const draft=state.drafts[w]||{};
@@ -835,14 +943,23 @@ function saveConfig(){
   closeModal('configModal');
 }
 function addSimple(type){
+  const today=todayISO();
   if(type==='walk'){
     const v=prompt('Walk 时长（分钟，可留空）','');
     if(v===null)return;
-    state.history.push({type:'walk',minutes:v.trim(),date:todayISO(),createdAt:nowISO()});
+    state.history.push({type:'walk',minutes:v.trim(),date:today,createdAt:nowISO()});
+    saveAndRender();
+    showToast('已记录 Walk ✓');
   }else{
-    state.history.push({type:'rest',date:todayISO(),createdAt:nowISO()});
+    const alreadyRest=state.history.some(x=>x.type==='rest'&&x.date===today);
+    if(alreadyRest){
+      showToast('今天已经记录过 Rest');
+      return;
+    }
+    state.history.push({type:'rest',date:today,createdAt:nowISO()});
+    saveAndRender();
+    showToast('已记录 Rest ✓');
   }
-  saveAndRender();
 }
 function exportJSON(){
   const payload=clone(state);
@@ -905,7 +1022,7 @@ function saveSettings(){
   closeModal('settingsModal');
 }
 
-startBtn.addEventListener('click',openWorkout);
+startBtn.addEventListener('click',()=>openWorkout());
 walkBtn.addEventListener('click',()=>addSimple('walk'));
 restBtn.addEventListener('click',()=>addSimple('rest'));
 recoveryBtn.addEventListener('click',openRecoveryWorkout);
@@ -932,6 +1049,7 @@ document.querySelectorAll('.modal').forEach(m=>{
   m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)})
 });
 
+dedupeRestHistory();
 render();
 </script>
 </body>

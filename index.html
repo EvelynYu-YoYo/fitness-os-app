@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fitness OS</title>
+<style>
+:root{
+  --bg:#f8f6f1;
+  --paper:#fffdfa;
+  --text:#2f312d;
+  --muted:#777a73;
+  --line:#dedbd3;
+  --green:#6f8d73;
+  --green-dark:#4e6f55;
+  --green-soft:#e9f0e8;
+  --blue-soft:#eef3f6;
+  --rose-soft:#f3e8e4;
+  --violet-soft:#efebf5;
+  --yellow-soft:#f4efde;
+  --shadow:0 8px 22px rgba(44,46,41,.05);
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{
+  margin:0;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(0,0,0,.018) 0 1px, transparent 1.2px) 0 0/18px 18px,
+    var(--bg);
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.app{
+  width:min(100%, 520px);
+  margin:0 auto;
+  padding:22px 14px 72px;
+}
+.header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.brand-mark{
+  width:38px;height:38px;
+  border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--yellow-soft);
+  font-size:20px;
+  border:1px solid var(--line);
+}
+h1{
+  margin:0;
+  font-size:28px;
+  font-weight:650;
+  letter-spacing:-.02em;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.icon-btn{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.7);
+  width:38px;height:38px;border-radius:50%;
+  display:grid;place-items:center;
+  color:var(--muted);
+}
+.card{
+  background:rgba(255,253,250,.94);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:16px;
+  box-shadow:var(--shadow);
+  margin-top:12px;
+}
+.card-title{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:700;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.hand-underline{
+  display:inline-block;
+  position:relative;
+}
+.hand-underline:after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:-4px;
+  height:5px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.16;
+  transform:rotate(-1deg);
+}
+.goal{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:10px;
+}
+.goal-main{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:14px;
+}
+.goal-main strong{
+  font-size:31px;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.arrow{font-size:22px;color:var(--muted)}
+.deadline{
+  display:flex;align-items:center;gap:7px;
+  color:var(--muted);
+  font-size:13px;
+}
+.latest-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:14px;
+}
+.metric{
+  padding:12px;
+  border:1px dashed var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.55);
+}
+.metric label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}
+.metric-row{display:flex;align-items:end;gap:5px}
+.metric input{
+  width:92px;
+  border:0;
+  border-bottom:1px dashed #bbb7ae;
+  background:transparent;
+  font-size:25px;
+  color:var(--text);
+  outline:none;
+}
+.metric small{color:var(--muted)}
+.hero{
+  background:linear-gradient(180deg,#eef3ea,#e5eee4);
+  border-color:#cdd9cc;
+  padding:18px;
+}
+.eyebrow{
+  font-size:12px;
+  letter-spacing:.14em;
+  font-weight:700;
+  color:var(--green-dark);
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.hero-body{
+  display:grid;
+  grid-template-columns:80px 1fr;
+  gap:14px;
+  margin-top:12px;
+  align-items:start;
+}
+.hero-code{
+  font-size:64px;
+  line-height:1;
+  font-weight:700;
+  color:var(--green-dark);
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+  text-align:center;
+  padding-top:4px;
+}
+.hero-info{
+  border-left:1px dashed #b8c8b9;
+  padding-left:14px;
+}
+.hero-info h2{
+  margin:0 0 10px;
+  font-size:21px;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.exercise-preview{
+  margin:0;
+  padding-left:18px;
+  display:grid;
+  gap:6px;
+  font-size:14px;
+}
+.exercise-preview li::marker{color:var(--green-dark)}
+.primary{
+  width:100%;
+  margin-top:16px;
+  border:0;
+  background:var(--green-dark);
+  color:#fff;
+  border-radius:14px;
+  padding:13px 16px;
+  font-weight:700;
+}
+.mini-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+.secondary{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.7);
+  color:var(--text);
+  border-radius:12px;
+  padding:10px 12px;
+}
+.month-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:8px;
+  margin-top:14px;
+}
+.month-count{
+  font-size:25px;
+  font-weight:700;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.progress{
+  grid-column:1/-1;
+  height:10px;border-radius:999px;
+  background:#ebe7df;
+  overflow:hidden;
+}
+.progress span{
+  display:block;height:100%;
+  background:#8f80af;
+  border-radius:999px;
+}
+.status{
+  color:#71608f;
+  font-size:13px;
+  background:var(--violet-soft);
+  padding:5px 8px;
+  border-radius:999px;
+}
+.pb-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:14px;
+}
+.pb{
+  text-align:center;
+  border-right:1px dashed var(--line);
+}
+.pb:last-child{border-right:0}
+.pb strong{display:block;font-size:13px;margin-bottom:5px}
+.pb span{
+  font-size:20px;
+  font-weight:700;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.library-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin-top:14px;
+}
+.lib{
+  border:1px dashed var(--line);
+  border-radius:14px;
+  padding:10px 6px;
+  text-align:center;
+  background:var(--paper);
+}
+.lib.active{outline:2px solid rgba(111,141,115,.25)}
+.lib strong{
+  display:block;
+  font-size:24px;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.lib small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.lib button{
+  border:0;background:transparent;color:var(--green-dark);
+  padding:4px 0 0;font-size:11px;
+}
+.history-list{margin-top:10px}
+.history-item{
+  display:flex;justify-content:space-between;gap:10px;
+  padding:10px 0;border-bottom:1px dashed var(--line);
+  font-size:13px;
+}
+.history-item:last-child{border-bottom:0}
+.badge{
+  background:var(--blue-soft);
+  padding:3px 7px;border-radius:999px;
+  color:#5f6f78;
+  margin-right:5px;
+}
+.backup{
+  background:#fffaf0;
+  border-color:#e4dcc9;
+}
+.backup-row{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  margin-top:12px;
+}
+.backup-note{font-size:12px;color:var(--muted)}
+.warn{color:#a06e24;font-weight:700}
+.modal{
+  position:fixed;inset:0;
+  background:rgba(32,33,30,.38);
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  z-index:50;
+}
+.modal.show{display:flex}
+.sheet{
+  width:min(100%,520px);
+  background:var(--bg);
+  border-radius:22px 22px 0 0;
+  padding:18px 14px 30px;
+  max-height:92vh;
+  overflow:auto;
+}
+.sheet-head{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:10px;margin-bottom:14px;
+}
+.sheet h2{
+  margin:0;
+  font-size:22px;
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+.exercise{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px;
+  margin-bottom:10px;
+}
+.exercise h3{margin:0 0 6px;font-size:15px}
+.last{font-size:12px;color:var(--muted);margin-bottom:10px}
+.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+.field input,.field textarea,.config textarea{
+  width:100%;
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:10px;
+  padding:9px;
+  color:var(--text);
+}
+.field textarea{resize:vertical}
+.config-block{
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:14px;
+  margin-top:10px;
+}
+.config-block h3{margin:0 0 8px;font-size:14px}
+.config textarea{resize:vertical}
+.toolbar{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.hidden{display:none!important}
+.note{
+  font-size:12px;color:var(--muted);line-height:1.5
+}
+@media (max-width:360px){
+  .hero-body{grid-template-columns:68px 1fr}
+  .hero-code{font-size:56px}
+  .library-grid{grid-template-columns:repeat(2,1fr)}
+  .pb-grid{grid-template-columns:1fr 1fr 1fr}
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">🏋🏻‍♀️</div>
+      <h1>Fitness OS</h1>
+    </div>
+    <button id="settingsBtn" class="icon-btn" aria-label="设置">⚙️</button>
+  </header>
+
+  <section class="card">
+    <div class="goal">
+      <div>
+        <div class="card-title">🎯 <span class="hand-underline">Current Goal</span></div>
+        <div class="goal-main">
+          <strong id="goalCurrent">35%</strong>
+          <span class="arrow">→</span>
+          <strong id="goalTarget">28%</strong>
+        </div>
+      </div>
+      <div class="deadline">🗓 <span id="deadlineText">2026.11.30</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">📊 <span class="hand-underline">Latest</span></div>
+    <div class="latest-grid">
+      <div class="metric">
+        <label for="weight">体重</label>
+        <div class="metric-row">
+          <input id="weight" type="number" step="0.1" placeholder="--.-">
+          <small>kg</small>
+        </div>
+      </div>
+      <div class="metric">
+        <label for="bodyFat">体脂</label>
+        <div class="metric-row">
+          <input id="bodyFat" type="number" step="0.1" placeholder="--.-">
+          <small>%</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card hero">
+    <div class="eyebrow">TODAY'S WORKOUT</div>
+    <div class="hero-body">
+      <div id="workoutCode" class="hero-code">A</div>
+      <div class="hero-info">
+        <h2 id="workoutName">Workout A</h2>
+        <ul id="preview" class="exercise-preview"></ul>
+        <div id="emptyPreview" class="note hidden">这个套餐还没有设置动作。</div>
+      </div>
+    </div>
+    <button id="startBtn" class="primary">开始训练 →</button>
+    <div class="mini-actions">
+      <button id="walkBtn" class="secondary">记录 Walk</button>
+      <button id="restBtn" class="secondary">记录 Rest</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">📅 <span class="hand-underline">This Month</span></div>
+    <div class="month-row">
+      <div id="monthCount" class="month-count">0 / 8 / 10</div>
+      <div id="monthStatus" class="status">💪 本月还需努力</div>
+      <div class="progress"><span id="monthBar" style="width:0%"></span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">🏆 <span class="hand-underline">最近突破</span></div>
+    <div class="pb-grid">
+      <div class="pb"><strong>腿举</strong><span id="pb-leg">—</span></div>
+      <div class="pb"><strong>高位下拉</strong><span id="pb-pull">—</span></div>
+      <div class="pb"><strong>划船</strong><span id="pb-row">—</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">📋 <span class="hand-underline">Workout Library</span></div>
+    <div id="library" class="library-grid"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">🕘 <span class="hand-underline">History</span></div>
+    <div id="history" class="history-list"></div>
+  </section>
+
+  <section class="card backup">
+    <div class="card-title">☁️ <span class="hand-underline">Backup</span></div>
+    <div class="backup-row">
+      <div>
+        <div id="lastBackupText">Last backup: —</div>
+        <div id="backupWarning" class="backup-note">建议每周备份一次完整 JSON。</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button id="exportBtn" class="secondary">Export JSON</button>
+      <button id="importBtn" class="secondary">Import JSON</button>
+    </div>
+    <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+  </section>
+</main>
+
+<div id="workoutModal" class="modal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div>
+        <div class="eyebrow">TRAINING LOG</div>
+        <h2 id="modalWorkoutTitle">Workout A</h2>
+      </div>
+      <button class="secondary" data-close="workoutModal">关闭</button>
+    </div>
+    <div id="exerciseList"></div>
+    <div class="toolbar">
+      <button id="saveDraftBtn" class="secondary">保存草稿</button>
+      <button id="completeBtn" class="primary" style="margin-top:0">完成训练 ✓</button>
+    </div>
+  </div>
+</div>
+
+<div id="configModal" class="modal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="configTitle">设置 Workout A</h2>
+      <button class="secondary" data-close="configModal">关闭</button>
+    </div>
+    <div class="config-block">
+      <h3>动作（每行一个）</h3>
+      <textarea id="configExercises" rows="10"></textarea>
+    </div>
+    <div class="config-block">
+      <h3>套餐名称 / 备注</h3>
+      <textarea id="configNote" rows="3" placeholder="例如：背部 / 姿态"></textarea>
+    </div>
+    <button id="saveConfigBtn" class="primary">保存套餐</button>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>Settings</h2>
+      <button class="secondary" data-close="settingsModal">关闭</button>
+    </div>
+    <div class="config-block">
+      <div class="field">
+        <label>当前体脂目标起点</label>
+        <input id="setCurrentFat" type="number" step="0.1">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>目标体脂</label>
+        <input id="setTargetFat" type="number" step="0.1">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>Deadline</label>
+        <input id="setDeadline" type="text" placeholder="2026.11.30">
+      </div>
+    </div>
+    <button id="saveSettingsBtn" class="primary">保存设置</button>
+  </div>
+</div>
+
+<script>
+const KEY='fitnessOS_mobile_v2';
+const baseState={
+  currentWorkout:'A',
+  plans:{
+    A:{note:'Workout A',exercises:[]},
+    B:{note:'Workout B',exercises:[]},
+    C:{note:'Workout C',exercises:[]},
+    '恢复':{note:'恢复训练',exercises:[]}
+  },
+  profile:{currentFat:35,targetFat:28,deadline:'2026.11.30',weight:'',bodyFat:''},
+  history:[],
+  drafts:{},
+  lastByExercise:{},
+  pbs:{'腿举':null,'高位下拉':null,'划船':null},
+  lastBackup:null
+};
+let state=load();
+let editingPlan='A';
+
+function clone(v){return JSON.parse(JSON.stringify(v))}
+function merge(base,extra){
+  return {
+    ...clone(base),...extra,
+    profile:{...base.profile,...(extra.profile||{})},
+    plans:{...base.plans,...(extra.plans||{})},
+    drafts:{...base.drafts,...(extra.drafts||{})},
+    lastByExercise:{...base.lastByExercise,...(extra.lastByExercise||{})},
+    pbs:{...base.pbs,...(extra.pbs||{})}
+  }
+}
+function load(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(KEY)||'null');
+    return saved?merge(baseState,saved):clone(baseState);
+  }catch(e){return clone(baseState)}
+}
+function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
+function saveAndRender(){persist();render()}
+function nowISO(){return new Date().toISOString()}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function nextWorkout(w){
+  const seq=['A','B','C','恢复'];
+  return seq[(seq.indexOf(w)+1)%seq.length];
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function fmtDate(iso){
+  if(!iso)return '—';
+  const d=new Date(iso);
+  if(Number.isNaN(d.getTime()))return iso;
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+function monthTrainingCount(){
+  const d=new Date();
+  const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  return state.history.filter(x=>x.type==='workout'&&x.date.startsWith(ym)).length;
+}
+function daysSince(iso){
+  if(!iso)return Infinity;
+  return Math.floor((Date.now()-new Date(iso).getTime())/86400000);
+}
+
+function render(){
+  goalCurrent.textContent=`${state.profile.currentFat}%`;
+  goalTarget.textContent=`${state.profile.targetFat}%`;
+  deadlineText.textContent=state.profile.deadline||'—';
+  weight.value=state.profile.weight??'';
+  bodyFat.value=state.profile.bodyFat??'';
+
+  const w=state.currentWorkout;
+  const plan=state.plans[w]||{note:'',exercises:[]};
+  workoutCode.textContent=w;
+  workoutName.textContent=plan.note||`Workout ${w}`;
+  preview.innerHTML='';
+  plan.exercises.slice(0,5).forEach(name=>{
+    const li=document.createElement('li');
+    li.textContent=name;
+    preview.appendChild(li);
+  });
+  emptyPreview.classList.toggle('hidden',plan.exercises.length>0);
+
+  const count=monthTrainingCount();
+  monthCount.textContent=`${count} / 8 / 10`;
+  monthBar.style.width=`${Math.min(100,count/10*100)}%`;
+  monthStatus.textContent=count>=10?'🎊 本月圆满完成~':count>=8?'🈴 本月合格~':'💪 本月还需努力';
+
+  pbLeg();
+  renderLibrary();
+  renderHistory();
+  renderBackup();
+}
+function pbLeg(){
+  document.getElementById('pb-leg').textContent=state.pbs['腿举']?`${state.pbs['腿举']} kg`:'—';
+  document.getElementById('pb-pull').textContent=state.pbs['高位下拉']?`${state.pbs['高位下拉']} kg`:'—';
+  document.getElementById('pb-row').textContent=state.pbs['划船']?`${state.pbs['划船']} kg`:'—';
+}
+function renderLibrary(){
+  library.innerHTML='';
+  ['A','B','C','恢复'].forEach(code=>{
+    const div=document.createElement('div');
+    div.className='lib'+(code===state.currentWorkout?' active':'');
+    const label=state.plans[code]?.note||`Workout ${code}`;
+    div.innerHTML=`<strong>${esc(code)}</strong><small>${esc(label)}</small>`;
+    const btn=document.createElement('button');
+    btn.textContent='编辑';
+    btn.addEventListener('click',()=>openConfig(code));
+    div.appendChild(btn);
+    library.appendChild(div);
+  });
+}
+function renderHistory(){
+  history.innerHTML='';
+  const items=[...state.history].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,10);
+  if(!items.length){
+    history.innerHTML='<div class="note">还没有记录。</div>';
+    return;
+  }
+  items.forEach(x=>{
+    const d=document.createElement('div');
+    d.className='history-item';
+    const title=x.type==='workout'?`Workout ${x.workout}`:x.type==='walk'?'Walk':'Rest';
+    const extra=x.type==='walk'&&x.minutes?` · ${x.minutes} min`:'';
+    d.innerHTML=`<div><span class="badge">${x.date.slice(5).replace('-','/')}</span>${esc(title)}${esc(extra)}</div><div class="note">${x.type==='workout'?(x.entries?.length||0)+' 项':''}</div>`;
+    history.appendChild(d);
+  });
+}
+function renderBackup(){
+  lastBackupText.textContent=`Last backup: ${state.lastBackup?fmtDate(state.lastBackup):'—'}`;
+  const days=daysSince(state.lastBackup);
+  if(days===Infinity){
+    backupWarning.textContent='尚未备份。建议导出第一份完整 JSON。';
+    backupWarning.className='backup-note warn';
+  }else if(days>=7){
+    backupWarning.textContent=`已经 ${days} 天未备份，建议现在 Export JSON。`;
+    backupWarning.className='backup-note warn';
+  }else{
+    backupWarning.textContent=`备份状态正常 · ${days} 天前`;
+    backupWarning.className='backup-note';
+  }
+}
+
+function openModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+function openWorkout(){
+  const w=state.currentWorkout, plan=state.plans[w];
+  modalWorkoutTitle.textContent=`Workout ${w}`;
+  exerciseList.innerHTML='';
+  const draft=state.drafts[w]||{};
+  if(!plan.exercises.length){
+    exerciseList.innerHTML='<div class="note">这个套餐还没有设置动作，请先在 Workout Library 里编辑。</div>';
+    saveDraftBtn.disabled=true;
+    completeBtn.disabled=true;
+  }else{
+    saveDraftBtn.disabled=false;
+    completeBtn.disabled=false;
+    plan.exercises.forEach(name=>{
+      const prev=state.lastByExercise[name];
+      const d=draft[name]||{};
+      const box=document.createElement('div');
+      box.className='exercise';
+      box.dataset.name=name;
+      box.innerHTML=`
+        <h3>${esc(name)}</h3>
+        <div class="last">${prev?`上次：${esc(prev.weight||'—')} kg × ${esc(prev.reps||'—')} × ${esc(prev.sets||'—')}`:'上次：—'}</div>
+        <div class="fields">
+          <div class="field"><label>重量 kg</label><input data-k="weight" type="number" step="0.5" value="${esc(d.weight||'')}"></div>
+          <div class="field"><label>次数</label><input data-k="reps" type="number" step="1" value="${esc(d.reps||'')}"></div>
+          <div class="field"><label>组数</label><input data-k="sets" type="number" step="1" value="${esc(d.sets||'')}"></div>
+        </div>
+        <div class="field" style="margin-top:8px"><label>备注</label><textarea data-k="note" rows="2">${esc(d.note||'')}</textarea></div>`;
+      exerciseList.appendChild(box);
+    });
+  }
+  openModal('workoutModal');
+}
+function collectWorkout(){
+  const data={};
+  exerciseList.querySelectorAll('.exercise').forEach(box=>{
+    data[box.dataset.name]={};
+    box.querySelectorAll('[data-k]').forEach(el=>{
+      data[box.dataset.name][el.dataset.k]=el.value;
+    });
+  });
+  return data;
+}
+function saveDraft(){
+  state.drafts[state.currentWorkout]=collectWorkout();
+  saveAndRender();
+  alert('草稿已保存');
+}
+function completeWorkout(){
+  const w=state.currentWorkout;
+  const data=collectWorkout();
+  const entries=Object.entries(data).map(([name,v])=>({name,...v}));
+  state.history.push({
+    type:'workout',
+    workout:w,
+    date:todayISO(),
+    createdAt:nowISO(),
+    entries
+  });
+  Object.entries(data).forEach(([name,v])=>{
+    if(v.weight||v.reps||v.sets)state.lastByExercise[name]=v;
+    if(Object.prototype.hasOwnProperty.call(state.pbs,name)){
+      const n=parseFloat(v.weight);
+      if(Number.isFinite(n) && (!state.pbs[name] || n>state.pbs[name]))state.pbs[name]=n;
+    }
+  });
+  delete state.drafts[w];
+  state.currentWorkout=nextWorkout(w);
+  saveAndRender();
+  closeModal('workoutModal');
+  alert(`已完成 ${w}，下一次：${state.currentWorkout}`);
+}
+function openConfig(code){
+  editingPlan=code;
+  configTitle.textContent=`设置 Workout ${code}`;
+  configExercises.value=(state.plans[code]?.exercises||[]).join('\n');
+  configNote.value=state.plans[code]?.note||'';
+  openModal('configModal');
+}
+function saveConfig(){
+  state.plans[editingPlan]={
+    exercises:configExercises.value.split('\n').map(s=>s.trim()).filter(Boolean),
+    note:configNote.value.trim()||`Workout ${editingPlan}`
+  };
+  saveAndRender();
+  closeModal('configModal');
+}
+function addSimple(type){
+  if(type==='walk'){
+    const v=prompt('Walk 时长（分钟，可留空）','');
+    if(v===null)return;
+    state.history.push({type:'walk',minutes:v.trim(),date:todayISO(),createdAt:nowISO()});
+  }else{
+    state.history.push({type:'rest',date:todayISO(),createdAt:nowISO()});
+  }
+  saveAndRender();
+}
+function exportJSON(){
+  const payload=clone(state);
+  payload.lastBackup=nowISO();
+  payload.exportedAt=payload.lastBackup;
+  payload.schemaVersion=2;
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  const stamp=todayISO();
+  a.href=URL.createObjectURL(blob);
+  a.download=`fitness-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+  state.lastBackup=payload.lastBackup;
+  saveAndRender();
+}
+function importJSON(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data || typeof data!=='object')throw new Error('invalid');
+      if(!confirm('Import 会用所选备份覆盖当前 Fitness OS 数据。继续吗？'))return;
+      state=merge(baseState,data);
+      persist();
+      render();
+      alert('数据恢复完成');
+    }catch(e){
+      alert('无法读取这个 JSON 备份。');
+    }
+  };
+  reader.readAsText(file);
+}
+function openSettings(){
+  setCurrentFat.value=state.profile.currentFat;
+  setTargetFat.value=state.profile.targetFat;
+  setDeadline.value=state.profile.deadline;
+  openModal('settingsModal');
+}
+function saveSettings(){
+  state.profile.currentFat=parseFloat(setCurrentFat.value)||state.profile.currentFat;
+  state.profile.targetFat=parseFloat(setTargetFat.value)||state.profile.targetFat;
+  state.profile.deadline=setDeadline.value.trim()||state.profile.deadline;
+  saveAndRender();
+  closeModal('settingsModal');
+}
+
+startBtn.addEventListener('click',openWorkout);
+walkBtn.addEventListener('click',()=>addSimple('walk'));
+restBtn.addEventListener('click',()=>addSimple('rest'));
+saveDraftBtn.addEventListener('click',saveDraft);
+completeBtn.addEventListener('click',completeWorkout);
+saveConfigBtn.addEventListener('click',saveConfig);
+settingsBtn.addEventListener('click',openSettings);
+saveSettingsBtn.addEventListener('click',saveSettings);
+exportBtn.addEventListener('click',exportJSON);
+importBtn.addEventListener('click',()=>importFile.click());
+importFile.addEventListener('change',e=>{
+  const f=e.target.files?.[0];
+  if(f)importJSON(f);
+  e.target.value='';
+});
+weight.addEventListener('change',e=>{state.profile.weight=e.target.value;saveAndRender()});
+bodyFat.addEventListener('change',e=>{state.profile.bodyFat=e.target.value;saveAndRender()});
+document.querySelectorAll('[data-close]').forEach(btn=>{
+  btn.addEventListener('click',()=>closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id)})
+});
+
+render();
+</script>
+</body>
+</html>

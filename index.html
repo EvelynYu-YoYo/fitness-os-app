@@ -471,7 +471,10 @@ h1{
       <button id="walkBtn" class="secondary">记录 Walk</button>
       <button id="restBtn" class="secondary">记录 Rest</button>
     </div>
-    <button id="recoveryBtn" class="secondary" style="width:100%;margin-top:10px">恢复训练</button>
+    <div class="mini-actions">
+      <button id="recoveryBtn" class="secondary">恢复训练</button>
+      <button id="backfillBtn" class="secondary">＋ 补打卡</button>
+    </div>
   </section>
 
   <section class="card">
@@ -579,6 +582,45 @@ h1{
   </div>
 </div>
 
+<div id="backfillModal" class="modal">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div>
+        <div class="eyebrow">BACKFILL LOG</div>
+        <h2>补打卡</h2>
+      </div>
+      <button class="secondary" data-close="backfillModal">关闭</button>
+    </div>
+    <div class="config-block">
+      <div class="field">
+        <label>实际日期</label>
+        <input id="backfillDate" type="date">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>类型</label>
+        <select id="backfillType" style="width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 12px;color:var(--text);font-size:16px">
+          <option value="A">Workout A</option>
+          <option value="B">Workout B</option>
+          <option value="C">Workout C</option>
+          <option value="恢复">恢复训练</option>
+          <option value="walk">Walk</option>
+          <option value="rest">Rest</option>
+        </select>
+      </div>
+      <div id="backfillMinutesWrap" class="field hidden" style="margin-top:10px">
+        <label>Walk 时长（分钟，可留空）</label>
+        <input id="backfillMinutes" type="number" min="0" step="1" placeholder="例如 30">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>备注（可选）</label>
+        <textarea id="backfillNote" rows="3" placeholder="例如：9/1 后补"></textarea>
+      </div>
+      <div class="note" style="margin-top:10px">补录会按实际日期计入 History 和当月训练次数；不会改变当前 A → B → C 的轮换顺序。</div>
+    </div>
+    <button id="saveBackfillBtn" class="primary">保存补打卡</button>
+  </div>
+</div>
+
 <div id="settingsModal" class="modal">
   <div class="sheet">
     <div class="sheet-head">
@@ -641,6 +683,13 @@ const startBtn = $('startBtn');
 const walkBtn = $('walkBtn');
 const restBtn = $('restBtn');
 const recoveryBtn = $('recoveryBtn');
+const backfillBtn = $('backfillBtn');
+const backfillDate = $('backfillDate');
+const backfillType = $('backfillType');
+const backfillMinutesWrap = $('backfillMinutesWrap');
+const backfillMinutes = $('backfillMinutes');
+const backfillNote = $('backfillNote');
+const saveBackfillBtn = $('saveBackfillBtn');
 const saveConfigBtn = $('saveConfigBtn');
 const settingsBtn = $('settingsBtn');
 const monthGoalBtn = $('monthGoalBtn');
@@ -813,7 +862,8 @@ function renderHistory(){
     if(x.type==='workout') title=`${x.workout} 训练`;
     else if(x.type==='walk') title=x.minutes?`Walk · ${x.minutes} 分钟`:'Walk';
     else title='Rest';
-    d.innerHTML=`<div><span class="badge">${x.date.slice(5).replace('-','/')}</span>${esc(title)}</div>`;
+    const backfillMark=x.backfilled?' · 补':' ';
+    d.innerHTML=`<div><span class="badge">${x.date.slice(5).replace('-','/')}${backfillMark}</span>${esc(title)}</div>`;
     history.appendChild(d);
   });
 }
@@ -961,6 +1011,46 @@ function addSimple(type){
     showToast('已记录 Rest ✓');
   }
 }
+function openBackfill(){
+  backfillDate.value=todayISO();
+  backfillType.value='A';
+  backfillMinutes.value='';
+  backfillNote.value='';
+  backfillMinutesWrap.classList.add('hidden');
+  openModal('backfillModal');
+}
+function toggleBackfillMinutes(){
+  backfillMinutesWrap.classList.toggle('hidden',backfillType.value!=='walk');
+}
+function saveBackfill(){
+  const date=backfillDate.value;
+  const type=backfillType.value;
+  const note=backfillNote.value.trim();
+  if(!date){
+    showToast('请选择实际日期');
+    return;
+  }
+  if(date>todayISO()){
+    showToast('不能补打卡未来日期');
+    return;
+  }
+  if(type==='rest'){
+    const duplicate=state.history.some(x=>x.type==='rest'&&x.date===date);
+    if(duplicate){
+      showToast('这一天已经记录过 Rest');
+      return;
+    }
+    state.history.push({type:'rest',date,createdAt:nowISO(),backfilled:true,note});
+  }else if(type==='walk'){
+    state.history.push({type:'walk',minutes:backfillMinutes.value.trim(),date,createdAt:nowISO(),backfilled:true,note});
+  }else{
+    state.history.push({type:'workout',workout:type,date,createdAt:nowISO(),entries:[],backfilled:true,note});
+  }
+  saveAndRender();
+  closeModal('backfillModal');
+  showToast(`已补录 ${date} ✓`);
+}
+
 function exportJSON(){
   const payload=clone(state);
   payload.lastBackup=nowISO();
@@ -1026,6 +1116,9 @@ startBtn.addEventListener('click',()=>openWorkout());
 walkBtn.addEventListener('click',()=>addSimple('walk'));
 restBtn.addEventListener('click',()=>addSimple('rest'));
 recoveryBtn.addEventListener('click',openRecoveryWorkout);
+backfillBtn.addEventListener('click',openBackfill);
+backfillType.addEventListener('change',toggleBackfillMinutes);
+saveBackfillBtn.addEventListener('click',saveBackfill);
 saveDraftBtn.addEventListener('click',saveDraft);
 completeBtn.addEventListener('click',completeWorkout);
 saveConfigBtn.addEventListener('click',saveConfig);

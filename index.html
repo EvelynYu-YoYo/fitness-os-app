@@ -286,11 +286,42 @@ h1{
 }
 .history-list{margin-top:10px}
 .history-item{
-  display:flex;justify-content:space-between;gap:10px;
+  display:block;
   padding:10px 0;border-bottom:1px dashed var(--line);
   font-size:13px;
 }
 .history-item:last-child{border-bottom:0}
+.history-row{
+  display:flex;justify-content:space-between;gap:10px;
+  align-items:flex-start;
+}
+.history-main{min-width:0}
+.history-summary{
+  color:var(--muted);
+  margin-top:5px;
+  line-height:1.45;
+}
+.history-detail{
+  margin-top:8px;
+}
+.history-detail summary{
+  color:var(--green-dark);
+  cursor:pointer;
+  font-weight:700;
+}
+.history-detail-list{
+  margin-top:8px;
+  display:grid;
+  gap:6px;
+}
+.history-detail-row{
+  background:rgba(255,255,255,.55);
+  border:1px dashed var(--line);
+  border-radius:10px;
+  padding:8px;
+  line-height:1.45;
+}
+.history-detail-row strong{display:block;margin-bottom:3px}
 .badge{
   background:var(--blue-soft);
   padding:3px 7px;border-radius:999px;
@@ -747,6 +778,34 @@ function nextWorkout(w){
   return seq[(seq.indexOf(w)+1)%seq.length];
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function isTimedExercise(name){
+  return /\d+(?:\.\d+)?\s*(?:min|分钟)/i.test(String(name||''));
+}
+function defaultDuration(name){
+  const m=String(name||'').match(/(\d+(?:\.\d+)?)\s*(?:min|分钟)/i);
+  return m?m[1]:'';
+}
+function parseTimedNote(note){
+  const raw=String(note||'');
+  const speed=raw.match(/(\d+(?:\.\d+)?)\s*(?:kph|km\/h|km／h|公里\/小时|公里每小时|bph)/i);
+  const incline=raw.match(/(\d+(?:\.\d+)?)\s*(?:倾斜|坡度|incline)/i)
+    || raw.match(/(?:倾斜|坡度|incline)\s*(\d+(?:\.\d+)?)/i);
+  const duration=raw.match(/(\d+(?:\.\d+)?)\s*(?:min|分钟)/i);
+  return {
+    speed:speed?speed[1]:'',
+    incline:incline?incline[1]:'',
+    duration:duration?duration[1]:''
+  };
+}
+function timedValues(name,entry={}){
+  const parsed=parseTimedNote(entry.note);
+  return {
+    speed:entry.speed||parsed.speed||'',
+    incline:entry.incline||parsed.incline||'',
+    duration:entry.duration||parsed.duration||defaultDuration(name),
+    note:entry.note||''
+  };
+}
 function fmtDate(iso){
   if(!iso)return '—';
   const d=new Date(iso);
@@ -848,6 +907,51 @@ function renderLibrary(){
     library.appendChild(div);
   });
 }
+function getWorkoutLabel(workout){
+  return state.plans[workout]?.note||`Workout ${workout}`;
+}
+function entrySummary(entry){
+  if(!entry)return '';
+  if(isTimedExercise(entry.name) || entry.speed || entry.incline || entry.duration){
+    const timed=timedValues(entry.name,entry);
+    const parts=[];
+    if(timed.speed)parts.push(`速度 ${timed.speed}`);
+    if(timed.incline)parts.push(`坡度 ${timed.incline}`);
+    if(timed.duration)parts.push(`${timed.duration} 分钟`);
+    return parts.length?`${entry.name}：${parts.join(' · ')}`:entry.name;
+  }
+  const parts=[];
+  if(entry.weight)parts.push(`${entry.weight} kg`);
+  if(entry.reps)parts.push(`${entry.reps} 次`);
+  if(entry.sets)parts.push(`${entry.sets} 组`);
+  return parts.length?`${entry.name}：${parts.join(' · ')}`:entry.name;
+}
+function renderWorkoutHistorySummary(item){
+  const entries=item.entries||[];
+  if(!entries.length)return item.note||'没有详细记录';
+  const text=entries.map(entrySummary).filter(Boolean).join('；');
+  return text||'没有详细记录';
+}
+function renderWorkoutHistoryDetail(item){
+  const entries=item.entries||[];
+  const rows=entries.map(entry=>{
+    const details=[];
+    if(isTimedExercise(entry.name) || entry.speed || entry.incline || entry.duration){
+      const timed=timedValues(entry.name,entry);
+      details.push(`速度：${esc(timed.speed||'—')}`);
+      details.push(`坡度：${esc(timed.incline||'—')}`);
+      details.push(`时间：${esc(timed.duration||'—')} 分钟`);
+    }else{
+      details.push(`重量：${esc(entry.weight||'—')} kg`);
+      details.push(`次数：${esc(entry.reps||'—')}`);
+      details.push(`组数：${esc(entry.sets||'—')}`);
+    }
+    details.push(`备注：${esc(entry.note||'—')}`);
+    return `<div class="history-detail-row"><strong>${esc(entry.name)}</strong>${details.join(' · ')}</div>`;
+  }).join('');
+  const note=item.note?`<div class="history-detail-row"><strong>备注</strong>${esc(item.note)}</div>`:'';
+  return `<details class="history-detail"><summary>查看详情</summary><div class="history-detail-list">${rows||'<div class="note">没有详细记录。</div>'}${note}</div></details>`;
+}
 function renderHistory(){
   history.innerHTML='';
   const items=[...state.history].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,10);
@@ -858,12 +962,16 @@ function renderHistory(){
   items.forEach(x=>{
     const d=document.createElement('div');
     d.className='history-item';
-    let title='';
-    if(x.type==='workout') title=`${x.workout} 训练`;
-    else if(x.type==='walk') title=x.minutes?`Walk · ${x.minutes} 分钟`:'Walk';
-    else title='Rest';
     const backfillMark=x.backfilled?' · 补':' ';
-    d.innerHTML=`<div><span class="badge">${x.date.slice(5).replace('-','/')}${backfillMark}</span>${esc(title)}</div>`;
+    if(x.type==='workout'){
+      const title=`${getWorkoutLabel(x.workout)} 训练`;
+      const summary=renderWorkoutHistorySummary(x);
+      d.innerHTML=`<div class="history-row"><div class="history-main"><div><span class="badge">${x.date.slice(5).replace('-','/')}${backfillMark}</span>${esc(title)}</div><div class="history-summary">${esc(summary)}</div></div></div>${renderWorkoutHistoryDetail(x)}`;
+    }else{
+      const title=x.type==='walk'?(x.minutes?`Walk · ${x.minutes} 分钟`:'Walk'):'Rest';
+      const note=x.note?`<div class="history-summary">${esc(x.note)}</div>`:'';
+      d.innerHTML=`<div class="history-row"><div class="history-main"><div><span class="badge">${x.date.slice(5).replace('-','/')}${backfillMark}</span>${esc(title)}</div>${note}</div></div>`;
+    }
     history.appendChild(d);
   });
 }
@@ -884,6 +992,19 @@ function renderBackup(){
 
 function openModal(id){document.getElementById(id).classList.add('show')}
 function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+function lastLine(name,prev){
+  if(!prev)return '上次：—';
+  if(isTimedExercise(name) || prev.speed || prev.incline || prev.duration){
+    const timed=timedValues(name,prev);
+    const parts=[];
+    if(timed.speed)parts.push(`速度 ${esc(timed.speed)}`);
+    if(timed.incline)parts.push(`坡度 ${esc(timed.incline)}`);
+    if(timed.duration)parts.push(`${esc(timed.duration)} 分钟`);
+    return parts.length?`上次：${parts.join(' · ')}`:'上次：—';
+  }
+  return `上次：${esc(prev.weight||'—')} kg × ${esc(prev.reps||'—')} × ${esc(prev.sets||'—')}`;
+}
 
 function openWorkout(workoutOverride=null){
   const w=workoutOverride||state.currentWorkout;
@@ -907,16 +1028,21 @@ function openWorkout(workoutOverride=null){
     plan.exercises.forEach(name=>{
       const prev=state.lastByExercise[name];
       const d=draft[name]||{};
+      const timed=isTimedExercise(name);
       const box=document.createElement('div');
       box.className='exercise';
       box.dataset.name=name;
-      box.innerHTML=`
-        <h3>${esc(name)}</h3>
-        <div class="last">${prev?`上次：${esc(prev.weight||'—')} kg × ${esc(prev.reps||'—')} × ${esc(prev.sets||'—')}`:'上次：—'}</div>
-        <div class="fields">
+      const fields=timed?`
+          <div class="field"><label>速度</label><input data-k="speed" type="number" step="0.1" value="${esc(d.speed||'')}"></div>
+          <div class="field"><label>坡度</label><input data-k="incline" type="number" step="0.5" value="${esc(d.incline||'')}"></div>
+          <div class="field"><label>时间</label><input data-k="duration" type="number" step="1" value="${esc(d.duration||defaultDuration(name))}"></div>`:`
           <div class="field"><label>重量 kg</label><input data-k="weight" type="number" step="0.5" value="${esc(d.weight||'')}"></div>
           <div class="field"><label>次数</label><input data-k="reps" type="number" step="1" value="${esc(d.reps||'')}"></div>
-          <div class="field"><label>组数</label><input data-k="sets" type="number" step="1" value="${esc(d.sets||'')}"></div>
+          <div class="field"><label>组数</label><input data-k="sets" type="number" step="1" value="${esc(d.sets||'')}"></div>`;
+      box.innerHTML=`
+        <h3>${esc(name)}</h3>
+        <div class="last">${lastLine(name,prev)}</div>
+        <div class="fields">${fields}
         </div>
         <div class="field" style="margin-top:8px"><label>备注</label><textarea data-k="note" rows="2">${esc(d.note||'')}</textarea></div>`;
       exerciseList.appendChild(box);
@@ -952,7 +1078,7 @@ function completeWorkout(){
     entries
   });
   Object.entries(data).forEach(([name,v])=>{
-    if(v.weight||v.reps||v.sets)state.lastByExercise[name]=v;
+    if(v.weight||v.reps||v.sets||v.speed||v.incline||v.duration)state.lastByExercise[name]=v;
     if(Object.prototype.hasOwnProperty.call(state.pbs,name)){
       const n=parseFloat(v.weight);
       if(Number.isFinite(n) && (!state.pbs[name] || n>state.pbs[name]))state.pbs[name]=n;

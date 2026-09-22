@@ -245,21 +245,24 @@ h1{
 }
 .pb-grid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(2,1fr);
   gap:8px;
   margin-top:14px;
 }
 .pb{
-  text-align:center;
-  border-right:1px dashed var(--line);
+  border:1px dashed var(--line);
+  border-radius:12px;
+  padding:10px;
+  background:rgba(255,255,255,.55);
 }
-.pb:last-child{border-right:0}
 .pb strong{display:block;font-size:13px;margin-bottom:5px}
 .pb span{
-  font-size:20px;
+  display:block;
+  font-size:18px;
   font-weight:700;
   font-family:"Segoe UI","Microsoft YaHei","PingFang SC",-apple-system,BlinkMacSystemFont,sans-serif;
 }
+.pb small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
 .library-grid{
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -439,7 +442,7 @@ h1{
   .hero-body{grid-template-columns:68px 1fr}
   .hero-code{font-size:56px}
   .library-grid{grid-template-columns:repeat(2,1fr)}
-  .pb-grid{grid-template-columns:1fr 1fr 1fr}
+  .pb-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -523,11 +526,7 @@ h1{
 
   <section class="card">
     <div class="card-title">🏆 <span class="hand-underline">最近突破</span></div>
-    <div class="pb-grid">
-      <div class="pb"><strong>腿举</strong><span id="pb-leg">—</span></div>
-      <div class="pb"><strong>高位下拉</strong><span id="pb-pull">—</span></div>
-      <div class="pb"><strong>划船</strong><span id="pb-row">—</span></div>
-    </div>
+    <div id="personalBests" class="pb-grid"></div>
   </section>
 
   <section class="card">
@@ -696,6 +695,7 @@ const monthBar = $('monthBar');
 const monthStatus = $('monthStatus');
 const library = $('library');
 const history = $('history');
+const personalBests = $('personalBests');
 const lastBackupText = $('lastBackupText');
 const backupWarning = $('backupWarning');
 const modalWorkoutTitle = $('modalWorkoutTitle');
@@ -883,15 +883,74 @@ function render(){
     monthStatus.textContent='尚未设置月目标';
   }
 
-  pbLeg();
+  renderPersonalBests();
   renderLibrary();
   renderHistory();
   renderBackup();
 }
-function pbLeg(){
-  document.getElementById('pb-leg').textContent=state.pbs['腿举']?`${state.pbs['腿举']} kg`:'—';
-  document.getElementById('pb-pull').textContent=state.pbs['高位下拉']?`${state.pbs['高位下拉']} kg`:'—';
-  document.getElementById('pb-row').textContent=state.pbs['划船']?`${state.pbs['划船']} kg`:'—';
+function chineseExerciseName(name){
+  const text=String(name||'').trim();
+  const names=[
+    ['热身走','热身走'],['坡走','坡走'],['轻松走','轻松走'],['轻走','轻走'],
+    ['高位下拉','高位下拉'],['上背训练','上背'],['胸推','胸推'],
+    ['腿举','腿举'],['坐姿腿弯举','腿弯举'],['腿屈伸','腿屈伸'],
+    ['髋外展','髋外展'],['髋内收','髋内收'],['坐姿划船','划船'],['划船','划船'],
+    ['下巴回收','下巴回收'],['墙面滑动','墙面滑动'],['胸肌拉伸','胸肌拉伸'],
+    ['Face Pull','面拉'],['Dead Bug','死虫']
+  ];
+  const found=names.find(([raw])=>text.includes(raw));
+  if(found)return found[1];
+  const chinese=text.match(/^[\u4e00-\u9fff]+/);
+  return chinese?chinese[0]:(text.split(/\s+/)[0]||'训练');
+}
+function collectPersonalBests(){
+  const bests=new Map();
+  const setBest=(label,value,text,date)=>{
+    if(!label || !Number.isFinite(value) || value<=0)return;
+    const prev=bests.get(label);
+    if(!prev || value>prev.value)bests.set(label,{label,value,text,date});
+  };
+  state.history.forEach(item=>{
+    if(item.type==='walk'){
+      const minutes=parseFloat(item.minutes);
+      setBest('走路',minutes,`${item.minutes} 分钟`,item.date);
+      return;
+    }
+    if(item.type!=='workout')return;
+    (item.entries||[]).forEach(entry=>{
+      if(/弹力带|バンド/.test(entry.name))return;
+      const label=chineseExerciseName(entry.name);
+      if(isTimedExercise(entry.name) || entry.speed || entry.incline || entry.duration){
+        const timed=timedValues(entry.name,entry);
+        const minutes=parseFloat(timed.duration);
+        const extra=[];
+        if(timed.speed)extra.push(`速度 ${timed.speed}`);
+        if(timed.incline)extra.push(`坡度 ${timed.incline}`);
+        setBest(label,minutes,`${timed.duration} 分钟${extra.length?` · ${extra.join(' · ')}`:''}`,item.date);
+        return;
+      }
+      const weight=parseFloat(entry.weight);
+      if(Number.isFinite(weight) && weight>0){
+        setBest(label,weight,`${entry.weight} kg`,item.date);
+        return;
+      }
+      const reps=parseFloat(entry.reps);
+      const sets=parseFloat(entry.sets);
+      if(Number.isFinite(reps) && reps>0){
+        const value=reps*(Number.isFinite(sets)&&sets>0?sets:1);
+        setBest(label,value,`${entry.reps} 次${entry.sets?` × ${entry.sets} 组`:''}`,item.date);
+      }
+    });
+  });
+  return [...bests.values()].sort((a,b)=>(b.date||'').localeCompare(a.date||'') || a.label.localeCompare(b.label,'zh-Hans')).slice(0,8);
+}
+function renderPersonalBests(){
+  const items=collectPersonalBests();
+  if(!items.length){
+    personalBests.innerHTML='<div class="note">完成训练后会自动显示走路和训练项目的最佳记录。</div>';
+    return;
+  }
+  personalBests.innerHTML=items.map(item=>`<div class="pb"><strong>${esc(item.label)}</strong><span>${esc(item.text)}</span><small>${esc(fmtDate(item.date))}</small></div>`).join('');
 }
 function renderLibrary(){
   library.innerHTML='';
@@ -965,8 +1024,7 @@ function renderHistory(){
     const backfillMark=x.backfilled?' · 补':' ';
     if(x.type==='workout'){
       const title=`${getWorkoutLabel(x.workout)} 训练`;
-      const summary=renderWorkoutHistorySummary(x);
-      d.innerHTML=`<div class="history-row"><div class="history-main"><div><span class="badge">${x.date.slice(5).replace('-','/')}${backfillMark}</span>${esc(title)}</div><div class="history-summary">${esc(summary)}</div></div></div>${renderWorkoutHistoryDetail(x)}`;
+      d.innerHTML=`<div class="history-row"><div class="history-main"><div><span class="badge">${x.date.slice(5).replace('-','/')}${backfillMark}</span>${esc(title)}</div></div></div>${renderWorkoutHistoryDetail(x)}`;
     }else{
       const title=x.type==='walk'?(x.minutes?`Walk · ${x.minutes} 分钟`:'Walk'):'Rest';
       const note=x.note?`<div class="history-summary">${esc(x.note)}</div>`:'';
